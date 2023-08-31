@@ -2,7 +2,7 @@
 //
 // \file TPCLineObjects.h
 //
-// \brief Definition of TPCLinebjects
+// \brief Definition of TPCSimpleLines
 //
 // \author fjnicolas@ugr.es
 //
@@ -19,12 +19,12 @@ class LineEquation {
         float fN;
 
     public:
-        LineEquation(float slope, float intercept);
+        LineEquation(float slope=0, float intercept=0);
         
         float Slope() {return fM;}
         float Intercept() {return fN;}
 
-        SPoint GetLineClosestPoint(double a, double b, double c, SPoint P);
+        SPoint GetLineClosestPoint(double a, double b, double c, SPoint p);
         SPoint GetLineClosestPoint(SPoint P);
         float GetDistance(SPoint P);
         float Evaluate(SPoint p);

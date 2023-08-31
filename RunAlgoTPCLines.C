@@ -1,26 +1,39 @@
 #include "src/TPCLinesParameters.cpp"
+#include "src/TPCSimpleHits.cpp"
 #include "src/TPCSimpleLines.cpp"
+#include "src/TPCSimpleClusters.cpp"
+#include "src/TPCSimpleTriangles.cpp"
+
 #include "src/TPCLinesHough.cpp"
 #include "src/TPCLinesTrackFinder.cpp"
-#include "src/TPCSimpleHits.cpp"
+#include "src/TPCLinesVertexAlgo.cpp"
 #include "src/TPCLinesAlgo.cpp"
-#include "src/TPCSimpleClusters.cpp"
+
+#include "src/TPCLinesDBSCAN.cpp"
+#include "src/TPCLinesPCA.cpp"
+
+#include "src/TPCLinesDisplay.cpp"
+#include "src/DirectionRecoUtils.h"
+#include "src/DistanceUtils.h"
 
 
-#define Debug 2
-#define DebugMode -1
+int RunAlgoTPCLines(int Debug=1, int DebugMode=-1, int event=-1,  const char *directory_path=".", std::string file_name="", const char *ext=".root")
+{
 
 
-int RunAlgoTPCLines(const char *directory_path=".", std::string file_name="analyzeItOutput_CCQE_R1-1_SR1-103.root", const char *ext=".root") {
-
+    //file_name = "analyzeItOutput_CCQE_R1-1_SR1-103.root";
+    file_name = "analyzeItOutput_V0Lambda_R1-1_SR1-195.root";
+    
     // program control variables
-    int fNEv = 2;
+    int fNEv = 1e6;
     int fEv = -1;
     int fSubRun = -1;
-    int fNEvSkip = 2;
+    int fNEvSkip = -1;
 
     std::string fView="C";
-    std::string fAppDisplayPath = "/Users/franciscojaviernicolas/Work/HyperonsAna/PyCppTestProgram/display";
+    std::string fAppDisplayPath = "plots/";
+    if(DebugMode==0) fAppDisplayPath = "plotsbg";
+    else if(DebugMode==1) fAppDisplayPath = "plotssignal";
 
     std::vector<double> fReadoutWindow = {-200, 1500};
     int fStampTime = -200;
@@ -49,37 +62,45 @@ int RunAlgoTPCLines(const char *directory_path=".", std::string file_name="analy
     double fThetaRes=25; //degrees
     double fMaxDistanceTube = 10;
     int fMinHoughHits = 3;
-    bool fRemoveIsolatedHits = true;
-    double fMaxNeighbourDistance = 2;
-    double fMinNeighboursHits = 2;
     int fVerboseHough = Debug;
-    int fDebugMode = DebugMode;
     HoughAlgorithmPsetType fPsetHough(fMaxRadiusLineHypothesis,
                                 fThetaRes,
                                 fMaxDistanceTube,
                                 fMinHoughHits,
-                                fRemoveIsolatedHits, fMaxNeighbourDistance, fMinNeighboursHits,
-                                fVerboseHough, fDebugMode);
+                                fVerboseHough);
     //Ana view parameters
     double fMaxRadius = 250;
     double fDriftConversion = 1.;
     int fMaxHoughTracks = 15;
+    bool fRemoveIsolatedHits = true;
+    double fMaxNeighbourDistance = 2;
+    double fMinNeighboursHits = 2;
+    int fVerbose = Debug;
+    int fDebugMode = DebugMode;
     TPCLinesAlgoPsetType fPsetAnaView(fMaxRadius, fDriftConversion, fMaxHoughTracks, fMinTrackHits,
-    fPsetHough, fPsetTrackFinder);
+    fRemoveIsolatedHits, fMaxNeighbourDistance, fMinNeighboursHits,
+    fVerbose, fDebugMode, fPsetHough, fPsetTrackFinder);
         
     // Get the candidate Files
     std::vector<TString> fFilePaths;
     TSystemDirectory dir(directory_path, directory_path);
     TList *files = dir.GetListOfFiles();
+    TString targetFileName(file_name);
     if (files){
         TSystemFile *file;
         TString fname;
         TIter next(files);
         while ((file=(TSystemFile*)next())) {
             fname = file->GetName();
-            if (!file->IsDirectory() && fname.EndsWith(ext) && fname.Contains(file_name)) {
-                cout << fname.Data() << endl;
-                fFilePaths.push_back(fname);
+            
+            if (!file->IsDirectory() && fname.EndsWith(ext)){
+                if(fname.Contains(targetFileName)){
+                    fFilePaths.push_back(fname);
+                }
+                std::cout << fname << " Target:" << targetFileName <<std::endl;
+                std::cout<<" Contains: "<<fname.Contains(targetFileName)<<std::endl;
+                
+                
             }
         }
     }
@@ -96,6 +117,8 @@ int RunAlgoTPCLines(const char *directory_path=".", std::string file_name="analy
     std::vector<int> fNVertex;
     int nEntries = 0;
     for (const auto& filepath : fFilePaths) {
+
+        std::cout<<" ANALYZING THE FILE: "<<filepath<<std::endl;
 
         TFile* f= new TFile(filepath);
 	    TTree* tree = (TTree*)f->Get("ana/AnaTPCTree");
@@ -162,6 +185,7 @@ int RunAlgoTPCLines(const char *directory_path=".", std::string file_name="analy
             nEntries++;
             std::cout << "Analyzing: " << runID << " " << subrunID << " " << eventID << std::endl;
             if (nEntries <= fNEvSkip) continue;
+            std::string eventLabel = "R="+std::to_string(runID)+" SR="+std::to_string(subrunID)+" E="+std::to_string(eventID);
             nEvents++;
 
             // True vertex
@@ -184,7 +208,7 @@ int RunAlgoTPCLines(const char *directory_path=".", std::string file_name="analy
                 nEventsSkipped++;
                 continue;
             }
-            if(recnuvX==-1){
+            if(recnuvU==-1){
                std::cout<<"    SKIPPED RECOVERTEX\n"; 
                continue;
                nEventsSkipped++;
@@ -202,10 +226,30 @@ int RunAlgoTPCLines(const char *directory_path=".", std::string file_name="analy
                                     hitsStartT, 
                                     hitsEndT,
                                     "");
+
             // Analyze
-            std::map<std::string, double> anaResults = _TPCLinesAlgo.AnaView();
+            int nOrigins = _TPCLinesAlgo.AnaView(eventLabel);
+            nProcessedEvents++;
+            if(nOrigins>0)
+                nEventsSelected+=1;
+
+            std::cout << " ********** Final status-" << std::endl;
+            std::cout << " ... NTotalEvents=" << nEvents << " NSkipped=" << nEventsSkipped << std::endl;
+            std::cout << " ... NProcessed=" << nProcessedEvents << " NSelected=" << nEventsSelected;
+            std::cout << " efficiency=" << static_cast<double>(nEventsSelected) / nProcessedEvents;
+            std::cout << " efficiency all=" << static_cast<double>(nEventsSelected) / nEvents << std::endl;
         }
     }
+
+
+    #include <iostream>
+    
+    std::cout << " ********** Final status-" << std::endl;
+    std::cout << " ... NTotalEvents=" << nEvents << " NSkipped=" << nEventsSkipped << std::endl;
+    std::cout << " ... NProcessed=" << nProcessedEvents << " NSelected=" << nEventsSelected;
+    std::cout << " efficiency=" << static_cast<double>(nEventsSelected) / nProcessedEvents;
+    std::cout << " efficiency all=" << static_cast<double>(nEventsSelected) / nEvents << std::endl;
+
 
     return 0;
 

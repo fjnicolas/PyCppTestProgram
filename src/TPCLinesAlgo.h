@@ -20,7 +20,9 @@
 #include "TPCSimpleHits.h"
 #include "TPCLinesHough.h"
 #include "TPCSimpleClusters.h"
+#include "TPCSimpleTriangles.h"
 #include "TPCLinesTrackFinder.h"
+#include "TPCLinesVertexAlgo.h"
 #include "TPCLinesDisplay.cpp"
 
 
@@ -50,9 +52,16 @@ class TPCLinesAlgo {
         // Track finder and clustering algorithm
         TPCLinesTrackFinder fTrackFinder;
 
+        // Vertex finder algorithm
+        TPCLinesVertexAlgo fVertexFinder;
+
         // Display app directory
         TPCLinesDisplay fDisplay;
         std::string fDisplayAppPath;
+
+        std::vector<SHit> RemoveIsolatedHits(std::vector<SHit> hitListForHough, std::vector<SHit>& discardedHits, double maxD, int minNeighbours);
+
+        std::vector<SLinearCluster> MergeIsolatedHits(std::vector<SLinearCluster> recoTrackList, std::vector<SHit> hitList, double dCleaning1D, double dTh = 3);
 
     public:
         // constructor
@@ -70,7 +79,7 @@ class TPCLinesAlgo {
                         std::string eventLabel="");
         
         // Function to analyze the view
-        std::map<std::string, double> AnaView();        
+        int AnaView(std::string eventLabel);        
 
         // Display
         void Display();                            

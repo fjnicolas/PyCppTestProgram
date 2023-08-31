@@ -27,8 +27,9 @@ SPoint LineEquation::GetLineClosestPoint(double a, double b, double c, SPoint P)
 }
 
 
-SPoint LineEquation::GetLineClosestPoint(SPoint p) {
-    return GetLineClosestPoint(-fM, 1, -fN, p);
+SPoint LineEquation::GetLineClosestPoint(SPoint P) {
+    
+    return GetLineClosestPoint(-fM, 1, -fN, P);
 }
 
 
@@ -40,6 +41,7 @@ float LineEquation::GetDistance(SPoint p) {
 float LineEquation::Evaluate(SPoint p) {
     return fM * p.X() + fN;
 }
+
 
 float LineEquation::EvaluateX(double x) {
     return fM * x + fN;

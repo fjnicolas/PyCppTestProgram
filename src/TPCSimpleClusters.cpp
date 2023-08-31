@@ -10,6 +10,7 @@
 
 #include "TPCSimpleClusters.h"
 #include "DistanceUtils.h"
+#include "TPCLinesPCA.cpp"
 
 SCluster::SCluster(std::vector<SHit> hitList){
     fNHits = hitList.size();
@@ -29,16 +30,16 @@ SCluster::SCluster(std::vector<SHit> hitList){
                 if (&hit == &hit2) continue;
 
                 // distance between centers               
-                double d = GetHitDistance(hit, hit2);
+                double d = TPCLinesDistanceUtils::GetHitDistance(hit, hit2);
                 if(d<dminComp) dminComp=d;
 
                 // calculate connectedeness
-                d = GetHitDistanceW(hit, hit2);
+                d = TPCLinesDistanceUtils::GetHitDistanceW(hit, hit2);
                 //d = GetHitDistanceOverlap(hit, hit2)
                 if(d<dminConn) dminConn=d;
 
                 // calculate connectedness 1D
-                d = GetHitDistance1D(hit, hit2);
+                d = TPCLinesDistanceUtils::GetHitDistance1D(hit, hit2);
                 if(d<dminX) dminX=d;
             }
 
@@ -52,13 +53,13 @@ SCluster::SCluster(std::vector<SHit> hitList){
             fHitList.push_back(newHit);
         }
             
-        fCompactness = CalculateMean(fCompactnessV);
-        fCompactnessRMS = CalculateStdDev(fCompactnessV);
-        fConnectedness = CalculateMean(fConnectednessV);
-        fConnectednessRMS = CalculateStdDev(fConnectednessV);
-        fConnectedness1D = CalculateMean(fConnectedness1DV);
-        fConnectedness1DRMS = CalculateStdDev(fConnectedness1DV);
-        fAverageWidth = CalculateMean(fWidths);
+        fCompactness = TPCLinesDistanceUtils::CalculateMean(fCompactnessV);
+        fCompactnessRMS = TPCLinesDistanceUtils::CalculateStdDev(fCompactnessV);
+        fConnectedness = TPCLinesDistanceUtils::CalculateMean(fConnectednessV);
+        fConnectednessRMS = TPCLinesDistanceUtils::CalculateStdDev(fConnectednessV);
+        fConnectedness1D = TPCLinesDistanceUtils::CalculateMean(fConnectedness1DV);
+        fConnectedness1DRMS = TPCLinesDistanceUtils::CalculateStdDev(fConnectedness1DV);
+        fAverageWidth = TPCLinesDistanceUtils::CalculateMean(fWidths);
     }
     else {
         fCompactness = 0;
@@ -86,52 +87,54 @@ std::ostream& operator<<(std::ostream& out, SCluster & c)
     return out;
 }
 
-
-double SCluster::GetMinDistanceToCluster(SHit h) {
+template <typename T>
+double SCluster::GetMinDistanceToCluster(const T& h) {
     double minD = 1e6;
     for (auto& hit : fHitList) {
-        double d = GetHitDistance(hit, h);
+        double d =TPCLinesDistanceUtils::GetHitDistance(hit, h);
         if (d < minD) minD = d;
     }
     return minD;
 }
 
-
-double SCluster::GetMinDistanceToClusterW(SHit h) {
+template <typename T>
+double SCluster::GetMinDistanceToClusterW(const T& h) {
     double minD = 1e4;
     for (auto& hit : fHitList) {
-        double d = GetHitDistanceW(hit, h);
+        double d = TPCLinesDistanceUtils::GetHitDistanceW(hit, h);
         if (d < minD) minD = d;
     }
     return minD;
 }
 
-double SCluster::GetMinDistanceToClusterOverlap(SHit h) {
+template <typename T>
+double SCluster::GetMinDistanceToClusterOverlap(const T& h) {
     double minD = 1e4;
     for (auto& hit : fHitList) {
-        double d = GetHitDistanceOverlap(hit, h);
+        double d = TPCLinesDistanceUtils::GetHitDistanceOverlap(hit, h);
         if (d < minD) minD = d;
     }
     return minD;
 }
 
-double SCluster::GetMinDistanceToCluster1D(SHit h) {
+template <typename T>
+double SCluster::GetMinDistanceToCluster1D(const T& h) {
     double minD = 1e4;
     for (auto& hit : fHitList) {
-        double d = GetHitDistance1D(hit, h);
+        double d = TPCLinesDistanceUtils::GetHitDistance1D(hit, h);
         if (d < minD) minD = d;
     }
     return minD;
 }
 
-
-std::pair<SHit, double> SCluster::GetClosestHitToPoint(SHit h) {
+template <typename T>
+std::pair<SHit, double> SCluster::GetClosestHitToPoint(const T& h) {
     double minD = 1e4;
     size_t closestHitIx = 0;
 
     for (size_t ix =0; ix<fHitList.size(); ix++){
         SHit hit = fHitList[ix];
-        double d = GetHitDistance(hit, h);
+        double d = TPCLinesDistanceUtils::GetHitDistance(hit, h);
         if (d < minD){
             minD = d;
             closestHitIx = ix;
@@ -140,4 +143,144 @@ std::pair<SHit, double> SCluster::GetClosestHitToPoint(SHit h) {
 
     std::pair<SHit, double> result(fHitList[closestHitIx], minD);
     return result;
+}
+
+
+
+//------------------------------  SLinearCluster
+
+SLinearCluster::SLinearCluster(std::vector<SHit> hitList){
+    
+    fId = -1;
+    fHitCluster = SCluster(hitList);
+
+    for (
+        auto &hit : hitList) {
+        if (hit.X() < fMinX) {
+            fMinX = hit.X();
+            fYAtMinX = hit.Y();
+        }
+        if (hit.X() > fMaxX) {
+            fMaxX = hit.X();
+            fYAtMaxX = hit.Y();
+        }
+        if (hit.Y() < fMinY) fMinY = hit.Y();
+        if (hit.Y() > fMaxY) fMaxY = hit.Y();
+        fMeanX += hit.X();
+        fMeanY += hit.Y();
+    }
+
+    if (!hitList.empty()) {
+        fMeanX /= hitList.size();
+        fMeanY /= hitList.size();
+        fCoMPoint = SPoint(fMeanX, fMeanY);
+    }
+
+    fStartPoint = SPoint(fMinX, fYAtMinX);
+    fEndPoint = SPoint(fMaxX, fYAtMaxX);
+
+    // fill track equations
+    if(hitList.size()>2){
+        TPCLinesPCA pcaAlgo;
+        fTrackEquation = pcaAlgo.PerformPCA2D(hitList);
+        if(hitList.size()>6){
+            fTrackEquationStart = pcaAlgo.PerformPCA2DThreshold(hitList, 0.5 );
+            fTrackEquationEnd = pcaAlgo.PerformPCA2DThreshold(hitList, 0.5, true);
+        }
+        else{
+            fTrackEquationStart = fTrackEquation;
+            fTrackEquationEnd = fTrackEquation;
+        }
+    }
+    
+    // members ro fill later
+    fHasResidualHits = false;
+    fHasStartEndPoints = false;
+    
+}
+
+
+double SLinearCluster::GetIntegral(){
+    double w = 0;
+    for (SHit hit : GetHits()) {
+        w += hit.Integral();
+    }
+    return w;
+}
+
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+std::vector<int> detect_outliers_iqr(std::vector<float> data, float threshold = 1.5) {
+    std::vector<int> outlier_indices;
+
+    // Calculate the first and third quartiles (25th and 75th percentiles)
+    size_t n = data.size();
+    std::vector<float> sorted_data = data;
+    std::sort(sorted_data.begin(), sorted_data.end());
+
+    size_t q1_index = static_cast<size_t>(n * 0.25);
+    size_t q3_index = static_cast<size_t>(n * 0.75);
+    float q1 = sorted_data[q1_index];
+    float q3 = sorted_data[q3_index];
+
+    // Calculate the IQR
+    float iqr = q3 - q1;
+
+    // Calculate the lower and upper bounds for outliers
+    float lower_bound = q1 - threshold * iqr;
+    float upper_bound = q3 + threshold * iqr;
+
+    // Find the outliers in the data
+    for (size_t i = 0; i < n; ++i) {
+        if (data[i] < lower_bound || data[i] > upper_bound) {
+            outlier_indices.push_back(i);
+        }
+    }
+
+    return outlier_indices;
+}
+
+
+void SLinearCluster::FillResidualHits() {
+    fHasResidualHits = true;
+    std::cout << "\n\n +-+-+-+-+-+-+- Filling residual hits +-+-+-+-+-+-+-" << std::endl;
+
+    if (NHits() > 0) {
+        // Get average residual
+        std::vector<float> dV;
+        for (SHit hit : GetHits()) {
+            float d = fTrackEquation.GetDistance(SPoint(hit.X(), hit.Y()));
+            dV.push_back(d);
+        }
+
+        std::vector<int> outliersIx = detect_outliers_iqr(dV, 1.5);
+        // std::vector<int> outliersIx = detect_outliers_zscore(dV, 3);
+
+        std::vector<SHit> resHitList;
+        std::vector<SHit> mainHitList;
+        for (size_t ix = 0; ix < NHits(); ++ix) {
+            if (std::find(outliersIx.begin(), outliersIx.end(), ix) != outliersIx.end()) {
+                resHitList.push_back(fHitCluster.GetHits()[ix]);
+            } else {
+                mainHitList.push_back(fHitCluster.GetHits()[ix]);
+            }
+        }
+
+        fResidualHitCluster = SCluster(resHitList);
+        fMainHitCluster = SCluster(mainHitList);
+
+        TPCLinesPCA pcaAlgo;
+
+        fTrackEquation= pcaAlgo.PerformPCA2D(mainHitList);
+        if (mainHitList.size() > 6) {
+            fTrackEquationStart = pcaAlgo.PerformPCA2DThreshold(mainHitList, 0.5 );
+            fTrackEquationEnd = pcaAlgo.PerformPCA2DThreshold(mainHitList, 0.5, true);
+        } else {
+            fTrackEquationStart = fTrackEquation;
+            fTrackEquationEnd = fTrackEquation;
+        }
+    }
 }

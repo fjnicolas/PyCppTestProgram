@@ -21,11 +21,24 @@
 class TPCLinesTrackFinder {
     private:
         TrackFinderAlgorithmPsetType fTPCLinesTrackFinderPset;
+        
         double GetHitLinearDensity(std::vector<SHit> data);
+        
         LineEquation PerformPCA2D(std::vector<SHit>& data);
+        
         void GetHitsInTube(std::vector<SHit> & hitsIn, std::vector<SHit> & hitsOut, LineEquation& line, std::vector<SHit>& hitList, double maxD);
+        
         void GetHitsInTubeSingleWire(std::vector<SHit> & hitsIn, std::vector<SHit> & hitsOut, LineEquation& line, std::vector<SHit>& hitList, double maxD);
-        void Get2DClusters(std::vector<SHit> & hits, double epsilon, int minPts);
+        
+        std::vector<std::pair<int, int>> GetListFrequency(vector<int> vList);
+        
+        std::pair<double, double> ComputeConnectivityMode(std::vector<double> v, int minClusterHits, double weightWidth);
+
+        std::vector<SLinearCluster> Get2DClusters(std::vector<SHit> & hits, double epsilon, int minPts, std::string option="");
+
+        std::vector<SLinearCluster> CaptureMissingHits(std::vector<SLinearCluster> trackV, std::vector<SHit> hitList);
+
+        std::vector<SLinearCluster> MakeTrack(std::vector<SLinearCluster> linearClusterList);
 
         // Display app directory
         TPCLinesDisplay fDisplay;
@@ -36,7 +49,7 @@ class TPCLinesTrackFinder {
         TPCLinesTrackFinder(TrackFinderAlgorithmPsetType tpcLinesTrackFinderPset);
 
         // main function
-        std::vector<SCluster> ReconstructTracksFromHoughDirection(std::vector<SHit> &hitList, LineEquation houghLine, int trkIter);
+        std::vector<SLinearCluster> ReconstructTracksFromHoughDirection(std::vector<SHit> &hitList, LineEquation houghLine, int trkIter);
         
 };
 

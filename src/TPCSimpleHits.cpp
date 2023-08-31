@@ -12,13 +12,18 @@
 
 // SPoint class functions
 SPoint::SPoint(int x, int y) 
-    : fX((double)x),
-    fY((double)y)
+    : fX((float)x),
+    fY((float)y)
+{}
+
+SPoint::SPoint(float x, float y) 
+    : fX(x),
+    fY(y)
 {}
 
 SPoint::SPoint(double x, double y) 
-    : fX(x),
-    fY(y)
+    : fX((float)x),
+    fY((float)y)
 {}
 
 std::ostream& operator<<(std::ostream& out, SPoint const& p)
@@ -51,8 +56,7 @@ std::ostream& operator<<(std::ostream& out, SVertex const& v)
 // SHit class functions
 SHit::SHit(int id, float x, float y, float w, float integral, float st = 0, float et = 0)
     : fId(id),
-    fX(x),
-    fY(y),
+    fP( SPoint(x, y) ),
     fWidth(w),
     fStartT(st),
     fEndT(et),
@@ -65,6 +69,23 @@ SHit::SHit(int id, float x, float y, float w, float integral, float st = 0, floa
 {
 }
 
+SHit::SHit(float x, float y)
+    : fId(-1),
+    fP( SPoint(x, y) ),
+    fWidth(-1),
+    fStartT(-1),
+    fEndT(-1),
+    fIntegral(-1
+    ),
+    fXProj(-1000),
+    fYProj(-1000),
+    fCompactness(-1000),
+    fConnectedness(-1000),
+    fConnectednes1D(-1000)
+{
+}
+
+
 void SHit::SetHitConnectivity(float comp, float conn, float conn1d) {
     fCompactness = comp;
     fConnectedness = conn;
@@ -73,7 +94,7 @@ void SHit::SetHitConnectivity(float comp, float conn, float conn1d) {
 
 std::ostream& operator<<(std::ostream& out, SHit const& h)
 {
-    out << " SHit -- x=" << h.fX << " y=" << h.fY << std::endl;
+    out << " SHit -- x=" << h.X() << " y=" << h.Y() << std::endl;
     return out;
 }
 

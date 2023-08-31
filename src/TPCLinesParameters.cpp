@@ -53,11 +53,7 @@ struct HoughAlgorithmPsetType {
     double ThetaRes;
     double MaxDistanceTube;
     int MinHoughHits;
-    bool RemoveIsolatedHits;
-    double MaxNeighbourDistance;
-    int MinNeighboursHits;
     int Verbose;
-    int DebugMode;
 
     // constructor
     HoughAlgorithmPsetType(
@@ -65,20 +61,12 @@ struct HoughAlgorithmPsetType {
         double _thetaRes,
         double _maxDistanceTube,
         int _minHoughHits,
-        bool _removeIsolatedHits,
-        double _maxNeighbourDistance,
-        int _minNeighboursHits,
-        int _verbose,
-        int _debugMode) : 
+        int _verbose) : 
         MaxRadiusLineHypothesis(_maxRadiusLineHypothesis),
         ThetaRes(_thetaRes),
         MaxDistanceTube(_maxDistanceTube), 
         MinHoughHits(_minHoughHits),
-        RemoveIsolatedHits(_removeIsolatedHits),
-        MaxNeighbourDistance(_maxNeighbourDistance), 
-        MinNeighboursHits(_minNeighboursHits),
-        Verbose(_verbose),
-        DebugMode(_debugMode)
+        Verbose(_verbose)
     {}
 };
 
@@ -88,6 +76,11 @@ struct TPCLinesAlgoPsetType{
     double DriftConversion;
     int MaxHoughTracks;
     int MinTrackHits;
+    bool RemoveIsolatedHits;
+    double MaxNeighbourDistance;
+    int MinNeighboursHits;
+    int Verbose;
+    int DebugMode;
     HoughAlgorithmPsetType HoughAlgorithmPset;
     TrackFinderAlgorithmPsetType TrackFinderAlgorithmPset;
     
@@ -97,12 +90,22 @@ struct TPCLinesAlgoPsetType{
         double _driftConversion,
         int _maxHoughTracks,
         int _minTrackHits,
+        bool _removeIsolatedHits,
+        double _maxNeighbourDistance,
+        int _minNeighboursHits,
+        int _verbose,
+        int _debugMode,
         HoughAlgorithmPsetType _houghAlgorithmPset,
         TrackFinderAlgorithmPsetType _trackFinderPset) :
         MaxRadius(_maxRadius),
         DriftConversion(_driftConversion),
         MaxHoughTracks(_maxHoughTracks),
         MinTrackHits(_minTrackHits),
+        RemoveIsolatedHits(_removeIsolatedHits),
+        MaxNeighbourDistance(_maxNeighbourDistance), 
+        MinNeighboursHits(_minNeighboursHits),
+        Verbose(_verbose),
+        DebugMode(_debugMode),
         HoughAlgorithmPset(_houghAlgorithmPset),
         TrackFinderAlgorithmPset(_trackFinderPset)
     {}

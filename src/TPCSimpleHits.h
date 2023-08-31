@@ -16,14 +16,15 @@
 
 class SPoint {
     private:
-        double fX;
-        double fY;
+        float fX;
+        float fY;
 
     public:
-        SPoint(int x, int y);
+        SPoint(int x=0, int y=0);
         SPoint(double x, double y);
-        double X(){return fX;}
-        double Y(){return fY;}
+        SPoint(float x, float y);
+        float X() const {return fX;}
+        float Y() const {return fY;}
 
         friend std::ostream& operator<<(std::ostream& out, SPoint const& p);
 };
@@ -36,14 +37,15 @@ class SVertex {
 
     public:
         SVertex();
-        SVertex(SPoint p, std::string view);
+        SVertex(SPoint p, std::string view="");
         
         SPoint Point(){return fP;}
-        std::string View(){return fView;}
-        bool IsActive(){return fActive;}
+        std::string View() const {return fView;}
+        bool IsActive() const {return fActive;}
 
-        double X(){return fP.X();}
-        double Y(){return fP.Y();}
+        double X() const {return fP.X();}
+        double Y() const 
+        {return fP.Y();}
 
         friend std::ostream& operator<<(std::ostream& out, SVertex const& v);
 };
@@ -51,8 +53,7 @@ class SVertex {
 class SHit {
     private:
         int fId;
-        float fX;
-        float fY;
+        SPoint fP;
         float fWidth;
         float fStartT;
         float fEndT;
@@ -65,20 +66,21 @@ class SHit {
 
     public:
         // Constructor
-        SHit(int id, float x, float y, float w, float integral, float st, float et);
+        SHit(int id=-1, float x=0, float y=0, float w=0, float integral=0, float st=0, float et=0);
+        SHit(float x, float y);
 
         int Id(){return fId;}
-        float X(){return fX;}
-        float Y(){return fY;}
-        float Width(){return fWidth;}
-        float StartT(){return fStartT;}
-        float EndT(){return fEndT;}
-        float Integral(){return fIntegral;}
-        float XProj(){return fXProj;}
-        float YProj(){return fYProj;}
-        float Compactness(){return fCompactness;}
-        float Connectednes(){return fConnectedness;}
-        float Connectednes1D(){return fConnectednes1D;}
+        float X() const {return fP.X();}
+        float Y() const {return fP.Y();}
+        float Width() const {return fWidth;}
+        float StartT() const {return fStartT;}
+        float EndT() const {return fEndT;}
+        float Integral() const {return fIntegral;}
+        float XProj() const {return fXProj;}
+        float YProj() const {return fYProj;}
+        float Compactness() const {return fCompactness;}
+        float Connectednes() const {return fConnectedness;}
+        float Connectednes1D() const {return fConnectednes1D;}
 
         // Set the hit connectivity
         void SetHitConnectivity(float comp, float conn, float conn1d);
